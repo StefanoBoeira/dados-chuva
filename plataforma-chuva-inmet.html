@@ -1,0 +1,1120 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Chuva - Estação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Plotly para gráficos interativos -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-soft: #111827;
+      --accent: #22c55e;
+      --accent-soft: rgba(34, 197, 94, 0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2937;
+      --danger: #f97316;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 60%, #000 100%);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+    header {
+      margin-bottom: 1.5rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    header h1 span.badge {
+      font-size: .8rem;
+      padding: .1rem .5rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    header p {
+      margin: .35rem 0 0;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+    .card {
+      background: linear-gradient(145deg, rgba(15,23,42,.98), rgba(15,23,42,.9));
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      box-shadow: 0 18px 45px rgba(0,0,0,.55);
+    }
+
+    .controls {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: minmax(0,2.2fr) minmax(0,1.2fr);
+      gap: 1rem;
+    }
+
+    .controls-main {
+      display: flex;
+      flex-direction: column;
+      gap: .85rem;
+    }
+
+    .file-input-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    label.inline-label {
+      font-size: .85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    input[type="file"] {
+      font-size: .85rem;
+      max-width: 280px;
+    }
+
+    .small-hint {
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+    }
+
+    .filters-row label {
+      font-size: .8rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+    }
+
+    .filters-row input,
+    .filters-row select {
+      background: #020617;
+      border-radius: .5rem;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: .35rem .6rem;
+      font-size: .85rem;
+      min-width: 120px;
+    }
+
+    .filters-row input:focus,
+    .filters-row select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(34,197,94,.35);
+    }
+
+    .station-info {
+      font-size: .8rem;
+      color: var(--muted);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: .2rem .75rem;
+    }
+
+    .station-info strong {
+      color: var(--text);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: .75rem;
+      margin-top: .15rem;
+    }
+
+    .summary-card {
+      padding: .7rem .8rem;
+      border-radius: .85rem;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at top left, rgba(34,197,94,.16), rgba(15,23,42,1));
+    }
+
+    .summary-card h3 {
+      margin: 0 0 .3rem;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .summary-card .value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .summary-card .meta {
+      margin-top: .2rem;
+      font-size: .75rem;
+      color: var(--muted);
+    }
+
+    .chart-card {
+      margin-bottom: 1.2rem;
+    }
+
+    #chartStatus {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: .35rem;
+    }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    h2.section-title {
+      font-size: 1rem;
+      margin: 0 0 .6rem;
+    }
+
+    .subsection-title {
+      font-size: .85rem;
+      margin: .75rem 0 .25rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+    }
+
+    thead {
+      background: rgba(15,23,42,.9);
+    }
+
+    th, td {
+      padding: .35rem .4rem;
+      border-bottom: 1px solid rgba(31,41,55,.8);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    tbody tr:nth-child(odd) {
+      background: rgba(15,23,42,.4);
+    }
+
+    tbody tr:hover {
+      background: rgba(15,23,42,.85);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 1.5rem;
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    @media (max-width: 900px) {
+      .controls-grid {
+        grid-template-columns: minmax(0,1fr);
+      }
+      .tables-grid {
+        grid-template-columns: minmax(0,1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        Dashboard de Chuva
+        <span class="badge">UTC +0</span>
+      </h1>
+      <p>Análise interativa de chuva horária, diária e mensal a partir de arquivos CSV da estação.</p>
+    </header>
+
+    <section class="controls card">
+      <div class="controls-grid">
+        <div class="controls-main">
+          <div class="file-input-row">
+            <label class="inline-label" for="fileInput">Arquivo de chuva (.csv):</label>
+            <input type="file" id="fileInput" accept=".csv">
+          </div>
+          <div class="small-hint">
+            Use diretamente o arquivo do INMET (como <code>dados_A811_H_2007-01-23_2025-12-04.csv</code>).<br>
+            O arquivo deve ter o cabeçalho <code>Data Medicao;Hora Medicao;PRECIPITACAO TOTAL, HORARIO(mm);...</code>.
+          </div>
+
+          <div class="filters-row" id="filtersRow" style="display:none;">
+            <label>
+              Filtro de datas
+              <select id="filterMode">
+                <option value="livre">Intervalo livre</option>
+                <option value="ano">Ano inteiro</option>
+                <option value="anoMes">Ano + mês</option>
+              </select>
+            </label>
+            <label>
+              Ano
+              <select id="filterYear" disabled>
+                <option value="">Selecione</option>
+              </select>
+            </label>
+            <label>
+              Mês
+              <select id="filterMonth" disabled>
+                <option value="">Todos</option>
+              </select>
+            </label>
+            <label>
+              Início
+              <input type="date" id="startDate">
+            </label>
+            <label>
+              Fim
+              <input type="date" id="endDate">
+            </label>
+            <label>
+              Série principal
+              <select id="variableSelect">
+                <option value="hourly">Precipitação horária</option>
+                <option value="daily" selected>Precipitação diária (acumulada)</option>
+                <option value="monthly">Precipitação mensal (acumulada)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <div class="station-info" id="stationInfo">
+            <span class="muted">Carregue um arquivo para ver as informações da estação.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="summaryGrid" style="display:none;">
+        <div class="summary-card">
+          <h3>Período selecionado</h3>
+          <div class="value" id="periodoValor">—</div>
+          <div class="meta" id="periodoMeta">—</div>
+        </div>
+        <div class="summary-card">
+          <h3>Total de chuva</h3>
+          <div class="value" id="totalChuvaValor">—</div>
+          <div class="meta" id="totalChuvaMeta">mm no período</div>
+        </div>
+        <div class="summary-card">
+          <h3>Dia mais chuvoso</h3>
+          <div class="value" id="diaMaxValor">—</div>
+          <div class="meta" id="diaMaxMeta">—</div>
+        </div>
+        <div class="summary-card">
+          <h3>Maior chuva horária</h3>
+          <div class="value" id="horaMaxValor">—</div>
+          <div class="meta" id="horaMaxMeta">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chart-card card">
+      <h2 class="section-title">Série temporal</h2>
+      <div id="mainChart" style="width:100%;height:420px;"></div>
+      <div id="chartStatus" class="muted"></div>
+    </section>
+
+    <section class="card">
+      <div class="tables-grid">
+        <div>
+          <h2 class="section-title">Acumulados de chuva</h2>
+          <div class="small-hint">Tabelas diárias e mensais para o intervalo filtrado.</div>
+
+          <h3 class="subsection-title">Acumulado diário (mm)</h3>
+          <div class="small-hint">Uma linha por dia, com total, máxima em 1h e número de horas com chuva.</div>
+          <div style="overflow:auto; max-height:180px;">
+            <table id="dailyTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Total (mm)</th>
+                  <th>Máx. 1h (mm)</th>
+                  <th>Horas com chuva</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <h3 class="subsection-title">Acumulado mensal (mm)</h3>
+          <div class="small-hint">Uma linha por mês, com total de chuva, dias com dados, dias com chuva e média diária no período filtrado.</div>
+          <div style="overflow:auto; max-height:180px;">
+            <table id="monthlyTable">
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Total (mm)</th>
+                  <th>Dias com dados</th>
+                  <th>Dias com chuva</th>
+                  <th>Média diária (mm)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <h2 class="section-title">Maiores chuvas horárias</h2>
+          <div class="small-hint">Top 30 instantes chuvosos no intervalo filtrado.</div>
+          <div style="overflow:auto; max-height:320px;">
+            <table id="topHoursTable">
+              <thead>
+                <tr>
+                  <th>Data / hora (UTC)</th>
+                  <th>Chuva (mm)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Horários em UTC +0 (conforme arquivo de origem). Ajuste mentalmente para o fuso local, se necessário.
+    </footer>
+  </div>
+
+  <script>
+    let todosRegistros = [];
+    let registrosFiltrados = [];
+    let estatisticasAtuais = null;
+    let dataMinima = null;
+    let dataMaxima = null;
+
+    const nomesMes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    let anosDisponiveis = [];
+    let mesesPorAno = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const stationInfoEl = document.getElementById('stationInfo');
+    const filtersRow = document.getElementById('filtersRow');
+    const summaryGrid = document.getElementById('summaryGrid');
+
+    const startDateEl = document.getElementById('startDate');
+    const endDateEl = document.getElementById('endDate');
+    const variableSelect = document.getElementById('variableSelect');
+    const filterModeEl = document.getElementById('filterMode');
+    const filterYearEl = document.getElementById('filterYear');
+    const filterMonthEl = document.getElementById('filterMonth');
+
+    const periodoValorEl = document.getElementById('periodoValor');
+    const periodoMetaEl = document.getElementById('periodoMeta');
+    const totalChuvaValorEl = document.getElementById('totalChuvaValor');
+    const totalChuvaMetaEl = document.getElementById('totalChuvaMeta');
+    const diaMaxValorEl = document.getElementById('diaMaxValor');
+    const diaMaxMetaEl = document.getElementById('diaMaxMeta');
+    const horaMaxValorEl = document.getElementById('horaMaxValor');
+    const horaMaxMetaEl = document.getElementById('horaMaxMeta');
+
+    const chartStatusEl = document.getElementById('chartStatus');
+    const dailyTableBody = document.querySelector('#dailyTable tbody');
+    const topHoursTableBody = document.querySelector('#topHoursTable tbody');
+    const monthlyTableBody = document.querySelector('#monthlyTable tbody');
+
+    fileInput.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const parsed = parseCsvChuva(text);
+        todosRegistros = parsed.registros;
+        if (!todosRegistros.length) {
+          alert('Não foi possível ler registros de chuva. Verifique se o arquivo está no formato esperado.');
+          return;
+        }
+        preencherInfoEstacao(parsed.estacao);
+        inicializarDatas();
+        prepararFiltroAnoMes();
+        aplicarFiltros();
+      };
+      // latin1 é comum nesses CSVs do INMET, mas se o navegador ignorar, cai no padrão.
+      reader.readAsText(file, 'latin1');
+    });
+
+    startDateEl.addEventListener('change', function() {
+      if (filterModeEl) {
+        filterModeEl.value = 'livre';
+        atualizarEstadoFiltroAnoMes();
+      }
+      aplicarFiltros();
+    });
+
+    endDateEl.addEventListener('change', function() {
+      if (filterModeEl) {
+        filterModeEl.value = 'livre';
+        atualizarEstadoFiltroAnoMes();
+      }
+      aplicarFiltros();
+    });
+
+    variableSelect.addEventListener('change', atualizarGrafico);
+
+    if (filterModeEl) {
+      filterModeEl.addEventListener('change', function() {
+        atualizarEstadoFiltroAnoMes();
+        aplicarFiltros();
+      });
+    }
+
+    if (filterYearEl) {
+      filterYearEl.addEventListener('change', function() {
+        atualizarFiltroMesesParaAno(filterYearEl.value);
+        if (filterModeEl && filterModeEl.value !== 'livre') {
+          aplicarFiltros();
+        }
+      });
+    }
+
+    if (filterMonthEl) {
+      filterMonthEl.addEventListener('change', function() {
+        if (filterModeEl && filterModeEl.value === 'anoMes') {
+          aplicarFiltros();
+        }
+      });
+    }
+
+    function parseCsvChuva(texto) {
+      const linhas = texto.split(/\r?\n/);
+      const estacao = {};
+      let indiceCabecalho = -1;
+
+      for (let i = 0; i < linhas.length; i++) {
+        const linha = linhas[i].trim();
+        if (!linha) continue;
+        if (linha.toLowerCase().startsWith('data medicao;')) {
+          indiceCabecalho = i;
+          break;
+        }
+        const idx = linha.indexOf(':');
+        if (idx !== -1) {
+          const chave = linha.slice(0, idx).trim();
+          const valor = linha.slice(idx + 1).trim();
+          if (chave && valor) {
+            estacao[chave] = valor;
+          }
+        }
+      }
+
+      if (indiceCabecalho === -1) {
+        return { estacao, registros: [] };
+      }
+
+      const cabecalho = linhas[indiceCabecalho].split(';').map(s => s.trim());
+      const idxData = cabecalho.findIndex(h => h.toLowerCase().startsWith('data medicao'));
+      const idxHora = cabecalho.findIndex(h => h.toLowerCase().startsWith('hora medicao'));
+      const idxPrec = cabecalho.findIndex(h => h.toLowerCase().includes('precipitacao'));
+
+      const registros = [];
+
+      for (let i = indiceCabecalho + 1; i < linhas.length; i++) {
+        let linha = linhas[i];
+        if (!linha) continue;
+        const partes = linha.split(';');
+        if (partes.length < 3) continue;
+
+        const dataStr = (partes[idxData] || '').trim();
+        const horaBruta = (partes[idxHora] || '').trim();
+        const precBruta = (partes[idxPrec] || '').trim().toLowerCase();
+
+        if (!dataStr) continue;
+
+        let horaStr = horaBruta || '0000';
+        horaStr = horaStr.padStart(4, '0');
+        const hh = parseInt(horaStr.slice(0, 2), 10);
+        const mm = parseInt(horaStr.slice(2, 4), 10);
+        if (Number.isNaN(hh) || Number.isNaN(mm)) continue;
+
+        const partesData = dataStr.split('-').map(Number);
+        if (partesData.length !== 3) continue;
+        const ano = partesData[0];
+        const mes = partesData[1];
+        const dia = partesData[2];
+        if (!ano || !mes || !dia) continue;
+
+        // Date em UTC, conforme o arquivo
+        const dataUTC = new Date(Date.UTC(ano, mes - 1, dia, hh, mm));
+
+        let precip = null;
+        if (precBruta !== 'null' && precBruta !== '') {
+          const valor = parseFloat(precBruta.replace(',', '.'));
+          if (!Number.isNaN(valor)) {
+            precip = valor;
+          }
+        }
+
+        registros.push({
+          dataStr: dataStr,
+          horaStr: horaStr,
+          dataHoraUTC: dataUTC,
+          precip: precip
+        });
+      }
+
+      return { estacao, registros };
+    }
+
+    function preencherInfoEstacao(estacao) {
+      if (!estacao || Object.keys(estacao).length === 0) {
+        stationInfoEl.innerHTML = '<span class="muted">Metadados de estação não encontrados no arquivo.</span>';
+        return;
+      }
+
+      const campos = [];
+      const nome = estacao['Nome'] || estacao['Nome da Estacao'] || estacao['Nome da Estação'];
+      const codigo = estacao['Codigo Estacao'] || estacao['Codigo Estação'] || estacao['Codigo'];
+      const lat = estacao['Latitude'];
+      const lon = estacao['Longitude'];
+      const alt = estacao['Altitude'];
+      const sit = estacao['Situacao'] || estacao['Situação'];
+      const dataIni = estacao['Data Inicial'];
+      const dataFim = estacao['Data Final'];
+      const per = estacao['Periodicidade da Medicao'] || estacao['Periodicidade da Medição'];
+
+      if (nome) campos.push('<span><strong>Nome:</strong> ' + escaparHtml(nome) + '</span>');
+      if (codigo) campos.push('<span><strong>Código:</strong> ' + escaparHtml(codigo) + '</span>');
+      if (lat) campos.push('<span><strong>Latitude:</strong> ' + escaparHtml(lat) + '</span>');
+      if (lon) campos.push('<span><strong>Longitude:</strong> ' + escaparHtml(lon) + '</span>');
+      if (alt) campos.push('<span><strong>Altitude:</strong> ' + escaparHtml(alt) + ' m</span>');
+      if (sit) campos.push('<span><strong>Situação:</strong> ' + escaparHtml(sit) + '</span>');
+      if (dataIni) campos.push('<span><strong>Dados desde:</strong> ' + escaparHtml(dataIni) + '</span>');
+      if (dataFim) campos.push('<span><strong>Dados até:</strong> ' + escaparHtml(dataFim) + '</span>');
+      if (per) campos.push('<span><strong>Periodicidade:</strong> ' + escaparHtml(per) + '</span>');
+
+      stationInfoEl.innerHTML = campos.join('');
+    }
+
+    function inicializarDatas() {
+      if (!todosRegistros.length) return;
+      const datas = todosRegistros.map(r => r.dataStr);
+      datas.sort();
+      dataMinima = datas[0];
+      dataMaxima = datas[datas.length - 1];
+
+      startDateEl.min = dataMinima;
+      startDateEl.max = dataMaxima;
+      endDateEl.min = dataMinima;
+      endDateEl.max = dataMaxima;
+
+      startDateEl.value = dataMinima;
+      endDateEl.value = dataMaxima;
+
+      filtersRow.style.display = 'flex';
+      summaryGrid.style.display = 'grid';
+    }
+
+    function prepararFiltroAnoMes() {
+      if (!filterYearEl || !filterMonthEl) return;
+
+      const anosSet = new Set();
+      const mesesMap = new Map();
+
+      for (const r of todosRegistros) {
+        const ano = r.dataStr.slice(0, 4);
+        const mes = r.dataStr.slice(5, 7);
+        if (!ano || !mes) continue;
+        anosSet.add(ano);
+        let setMes = mesesMap.get(ano);
+        if (!setMes) {
+          setMes = new Set();
+          mesesMap.set(ano, setMes);
+        }
+        setMes.add(mes);
+      }
+
+      anosDisponiveis = Array.from(anosSet).sort();
+      mesesPorAno = mesesMap;
+
+      filterYearEl.innerHTML = '';
+      const optSelecione = document.createElement('option');
+      optSelecione.value = '';
+      optSelecione.textContent = 'Selecione';
+      filterYearEl.appendChild(optSelecione);
+
+      for (const ano of anosDisponiveis) {
+        const opt = document.createElement('option');
+        opt.value = ano;
+        opt.textContent = ano;
+        filterYearEl.appendChild(opt);
+      }
+
+      filterYearEl.disabled = anosDisponiveis.length === 0;
+
+      filterMonthEl.innerHTML = '';
+      const optTodos = document.createElement('option');
+      optTodos.value = '';
+      optTodos.textContent = 'Todos';
+      filterMonthEl.appendChild(optTodos);
+      filterMonthEl.disabled = true;
+
+      if (filterModeEl) {
+        filterModeEl.value = 'livre';
+      }
+      atualizarEstadoFiltroAnoMes();
+    }
+
+    function atualizarFiltroMesesParaAno(ano) {
+      if (!filterMonthEl) return;
+
+      filterMonthEl.innerHTML = '';
+      const optTodos = document.createElement('option');
+      optTodos.value = '';
+      optTodos.textContent = 'Todos';
+      filterMonthEl.appendChild(optTodos);
+
+      if (!ano || !mesesPorAno || !mesesPorAno.has(ano)) {
+        filterMonthEl.disabled = true;
+        return;
+      }
+
+      const mesesSet = mesesPorAno.get(ano);
+      const mesesOrdenados = Array.from(mesesSet).sort();
+
+      for (const mes of mesesOrdenados) {
+        const idx = parseInt(mes, 10) - 1;
+        const opt = document.createElement('option');
+        opt.value = mes;
+        opt.textContent = nomesMes[idx] ? nomesMes[idx] : mes;
+        filterMonthEl.appendChild(opt);
+      }
+
+      filterMonthEl.disabled = false;
+    }
+
+    function atualizarEstadoFiltroAnoMes() {
+      if (!filterModeEl || !filterYearEl || !filterMonthEl) return;
+
+      const modo = filterModeEl.value;
+
+      if (modo === 'livre') {
+        filterYearEl.disabled = anosDisponiveis.length === 0;
+        filterMonthEl.disabled = true;
+      } else if (modo === 'ano') {
+        filterYearEl.disabled = anosDisponiveis.length === 0;
+        filterMonthEl.disabled = true;
+      } else if (modo === 'anoMes') {
+        filterYearEl.disabled = anosDisponiveis.length === 0;
+        atualizarFiltroMesesParaAno(filterYearEl.value);
+      }
+    }
+
+    // >>> AQUI está a correção principal: tratar "livre" separado e não sobrescrever os inputs
+    function aplicarFiltros() {
+      if (!todosRegistros.length) return;
+
+      const modo = filterModeEl ? filterModeEl.value : 'livre';
+      let iniFiltro;
+      let fimFiltro;
+
+      if (modo === 'ano' && filterYearEl && filterYearEl.value) {
+        const ano = filterYearEl.value;
+        iniFiltro = ano + '-01-01';
+        fimFiltro = ano + '-12-31';
+
+        if (dataMinima && iniFiltro < dataMinima) iniFiltro = dataMinima;
+        if (dataMaxima && fimFiltro > dataMaxima) fimFiltro = dataMaxima;
+        if (iniFiltro > fimFiltro) {
+          const tmp = iniFiltro;
+          iniFiltro = fimFiltro;
+          fimFiltro = tmp;
+        }
+
+        if (startDateEl) startDateEl.value = iniFiltro;
+        if (endDateEl) endDateEl.value = fimFiltro;
+      } else if (
+        modo === 'anoMes' &&
+        filterYearEl && filterYearEl.value &&
+        filterMonthEl && filterMonthEl.value
+      ) {
+        const ano = filterYearEl.value;
+        const mes = filterMonthEl.value;
+        const chaveMes = ano + '-' + mes;
+
+        const datasMes = todosRegistros
+          .filter(r => r.dataStr.slice(0, 7) === chaveMes)
+          .map(r => r.dataStr)
+          .sort();
+
+        if (datasMes.length) {
+          iniFiltro = datasMes[0];
+          fimFiltro = datasMes[datasMes.length - 1];
+        } else {
+          iniFiltro = ano + '-01-01';
+          fimFiltro = ano + '-12-31';
+        }
+
+        if (dataMinima && iniFiltro < dataMinima) iniFiltro = dataMinima;
+        if (dataMaxima && fimFiltro > dataMaxima) fimFiltro = dataMaxima;
+        if (iniFiltro > fimFiltro) {
+          const tmp = iniFiltro;
+          iniFiltro = fimFiltro;
+          fimFiltro = tmp;
+        }
+
+        if (startDateEl) startDateEl.value = iniFiltro;
+        if (endDateEl) endDateEl.value = fimFiltro;
+      } else {
+        // MODO LIVRE: usa o que o usuário digitou, sem mexer nos campos
+        let iniUser = startDateEl ? startDateEl.value : '';
+        let fimUser = endDateEl ? endDateEl.value : '';
+
+        iniFiltro = iniUser || dataMinima;
+        fimFiltro = fimUser || dataMaxima;
+
+        if (dataMinima && iniFiltro < dataMinima) iniFiltro = dataMinima;
+        if (dataMaxima && fimFiltro > dataMaxima) fimFiltro = dataMaxima;
+      }
+
+      if (!iniFiltro) iniFiltro = dataMinima;
+      if (!fimFiltro) fimFiltro = dataMaxima;
+
+      // Só para o filtro interno (não altera o que o usuário digitou)
+      if (iniFiltro > fimFiltro) {
+        const tmp = iniFiltro;
+        iniFiltro = fimFiltro;
+        fimFiltro = tmp;
+      }
+
+      registrosFiltrados = todosRegistros.filter(
+        r => r.dataStr >= iniFiltro && r.dataStr <= fimFiltro
+      );
+
+      estatisticasAtuais = calcularEstatisticas(registrosFiltrados);
+
+      atualizarResumo(iniFiltro, fimFiltro, estatisticasAtuais);
+      atualizarGrafico();
+      atualizarTabelas(estatisticasAtuais);
+    }
+
+    function calcularEstatisticas(registros) {
+      const mapaDiario = new Map();
+      let total = 0;
+      let maxHora = null;
+
+      for (const r of registros) {
+        if (r.precip == null) continue;
+
+        total += r.precip;
+
+        if (!maxHora || r.precip > maxHora.precip) {
+          maxHora = r;
+        }
+
+        const dia = r.dataStr;
+        let d = mapaDiario.get(dia);
+        if (!d) {
+          d = { data: dia, total: 0, max1h: 0, horasChuva: 0 };
+          mapaDiario.set(dia, d);
+        }
+        d.total += r.precip;
+        if (r.precip > d.max1h) d.max1h = r.precip;
+        if (r.precip > 0) d.horasChuva += 1;
+      }
+
+      const diarios = Array.from(mapaDiario.values()).sort((a, b) => a.data.localeCompare(b.data));
+
+      const mapaMensal = new Map();
+      for (const d of diarios) {
+        const mesChave = d.data.slice(0, 7);
+        let m = mapaMensal.get(mesChave);
+        if (!m) {
+          m = { mes: mesChave, total: 0, diasComDados: 0, diasComChuva: 0 };
+          mapaMensal.set(mesChave, m);
+        }
+        m.total += d.total;
+        m.diasComDados += 1;
+        if (d.total > 0) m.diasComChuva += 1;
+      }
+      const mensais = Array.from(mapaMensal.values()).sort((a, b) => a.mes.localeCompare(b.mes));
+
+      let diaMax = null;
+      for (const d of diarios) {
+        if (!diaMax || d.total > diaMax.total) {
+          diaMax = d;
+        }
+      }
+
+      const diasChuvosos = diarios.filter(d => d.total > 0).length;
+      const mediaDiaria = diarios.length ? total / diarios.length : 0;
+
+      const horasValidas = registros.filter(r => r.precip != null);
+      horasValidas.sort((a, b) => b.precip - a.precip);
+      const topHoras = horasValidas.slice(0, 30);
+
+      return {
+        total,
+        diarios,
+        mensais,
+        diaMax,
+        maxHora,
+        diasChuvosos,
+        mediaDiaria,
+        topHoras,
+        quantidadeRegistros: registros.length
+      };
+    }
+
+    function atualizarResumo(ini, fim, stats) {
+      const diasIntervalo = diasEntreDatas(ini, fim) + 1;
+      periodoValorEl.textContent = ini + ' → ' + fim;
+      periodoMetaEl.textContent = diasIntervalo + ' dia' + (diasIntervalo > 1 ? 's' : '') + ' no intervalo';
+
+      if (!stats || stats.quantidadeRegistros === 0) {
+        totalChuvaValorEl.textContent = '—';
+        totalChuvaMetaEl.textContent = 'mm no período';
+        diaMaxValorEl.textContent = '—';
+        diaMaxMetaEl.textContent = '—';
+        horaMaxValorEl.textContent = '—';
+        horaMaxMetaEl.textContent = '—';
+        return;
+      }
+
+      totalChuvaValorEl.textContent = formatarNumero(stats.total, 1) + ' mm';
+      totalChuvaMetaEl.textContent = 'Média diária: ' + formatarNumero(stats.mediaDiaria, 1) + ' mm (' +
+        stats.diasChuvosos + ' dia' + (stats.diasChuvosos !== 1 ? 's' : '') + ' com chuva)';
+
+      if (stats.diaMax) {
+        diaMaxValorEl.textContent = stats.diaMax.data;
+        diaMaxMetaEl.textContent = 'Total: ' + formatarNumero(stats.diaMax.total, 1) + ' mm';
+      } else {
+        diaMaxValorEl.textContent = '—';
+        diaMaxMetaEl.textContent = '—';
+      }
+
+      if (stats.maxHora) {
+        const iso = stats.maxHora.dataHoraUTC.toISOString();
+        const data = iso.slice(0, 10);
+        const hora = iso.slice(11, 16);
+        horaMaxValorEl.textContent = formatarNumero(stats.maxHora.precip, 1) + ' mm';
+        horaMaxMetaEl.textContent = data + ' ' + hora + ' UTC';
+      } else {
+        horaMaxValorEl.textContent = '—';
+        horaMaxMetaEl.textContent = '—';
+      }
+    }
+
+    function atualizarGrafico() {
+      if (!estatisticasAtuais) return;
+
+      const modo = variableSelect.value;
+      let x = [];
+      let y = [];
+      let tituloY = '';
+      let tipo = 'bar';
+
+      chartStatusEl.textContent = '';
+
+      if (modo === 'hourly') {
+        const registrosValidos = registrosFiltrados.filter(r => r.precip != null);
+        if (registrosValidos.length === 0) {
+          Plotly.newPlot('mainChart', [], {
+            title: { text: 'Sem dados para o período selecionado' },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e5e7eb' }
+          });
+          chartStatusEl.textContent = 'Nenhuma observação com precipitação disponível neste intervalo.';
+          return;
+        }
+        if (registrosValidos.length > 12000) {
+          Plotly.newPlot('mainChart', [], {
+            title: { text: 'Intervalo muito longo para visualizar a chuva horária' },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e5e7eb' }
+          });
+          chartStatusEl.textContent = 'Selecione um intervalo menor (até ~12 mil registros) para ver a série horária com boa performance.';
+          return;
+        }
+        x = registrosValidos.map(r => r.dataHoraUTC);
+        y = registrosValidos.map(r => r.precip);
+        tituloY = 'Precipitação horária (mm)';
+        tipo = 'bar';
+      } else if (modo === 'daily') {
+        const d = estatisticasAtuais.diarios;
+        if (!d.length) {
+          Plotly.newPlot('mainChart', [], {
+            title: { text: 'Sem dados diários para o período selecionado' },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e5e7eb' }
+          });
+          chartStatusEl.textContent = 'Não há estatísticas diárias calculadas para o intervalo atual.';
+          return;
+        }
+        x = d.map(row => row.data);
+        y = d.map(row => row.total);
+        tituloY = 'Precipitação diária acumulada (mm)';
+        tipo = 'bar';
+      } else if (modo === 'monthly') {
+        const m = estatisticasAtuais.mensais;
+        if (!m.length) {
+          Plotly.newPlot('mainChart', [], {
+            title: { text: 'Sem dados mensais para o período selecionado' },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#e5e7eb' }
+          });
+          chartStatusEl.textContent = 'Não há agregação mensal calculada para o intervalo atual.';
+          return;
+        }
+        x = m.map(row => row.mes + '-01'); // dia fictício para eixo de datas
+        y = m.map(row => row.total);
+        tituloY = 'Precipitação mensal acumulada (mm)';
+        tipo = 'bar';
+      }
+
+      const trace = {
+        x: x,
+        y: y,
+        type: tipo,
+        hovertemplate: modo === 'hourly'
+          ? '%{x|%Y-%m-%d %H:%M UTC}<br>Chuva: %{y:.1f} mm<extra></extra>'
+          : '%{x}<br>Chuva: %{y:.1f} mm<extra></extra>'
+      };
+
+      const layout = {
+        margin: { l: 55, r: 10, t: 30, b: 50 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(15,23,42,0.95)',
+        font: { color: '#e5e7eb' },
+        xaxis: {
+          title: modo === 'hourly' ? 'Data / hora (UTC +0)' : 'Data',
+          showgrid: true,
+          gridcolor: 'rgba(55,65,81,0.5)'
+        },
+        yaxis: {
+          title: tituloY,
+          showgrid: true,
+          gridcolor: 'rgba(55,65,81,0.5)'
+        }
+      };
+
+      Plotly.newPlot('mainChart', [trace], layout, { responsive: true });
+    }
+
+    function atualizarTabelas(stats) {
+      dailyTableBody.innerHTML = '';
+      topHoursTableBody.innerHTML = '';
+      monthlyTableBody.innerHTML = '';
+
+      if (!stats) return;
+
+      const dias = stats.diarios;
+
+      for (const d of dias) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + d.data + '</td>' +
+          '<td>' + formatarNumero(d.total, 1) + '</td>' +
+          '<td>' + formatarNumero(d.max1h, 1) + '</td>' +
+          '<td>' + d.horasChuva + '</td>';
+        dailyTableBody.appendChild(tr);
+      }
+
+      const horas = stats.topHoras;
+      for (const h of horas) {
+        const iso = h.dataHoraUTC.toISOString();
+        const data = iso.slice(0, 10);
+        const hora = iso.slice(11, 16);
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + data + ' ' + hora + '</td>' +
+          '<td>' + formatarNumero(h.precip, 1) + '</td>';
+        topHoursTableBody.appendChild(tr);
+      }
+
+      const meses = stats.mensais;
+      for (const m of meses) {
+        const partesMes = m.mes.split('-');
+        const ano = partesMes[0];
+        const mes = partesMes[1];
+        let rotuloMes = m.mes;
+        if (mes && ano) {
+          const idx = parseInt(mes, 10) - 1;
+          const nomeMes = nomesMes[idx] ? nomesMes[idx] : mes;
+          rotuloMes = nomeMes + '/' + ano;
+        }
+        const mediaMensal = m.diasComDados ? (m.total / m.diasComDados) : 0;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + rotuloMes + '</td>' +
+          '<td>' + formatarNumero(m.total, 1) + '</td>' +
+          '<td>' + m.diasComDados + '</td>' +
+          '<td>' + m.diasComChuva + '</td>' +
+          '<td>' + formatarNumero(mediaMensal, 1) + '</td>';
+        monthlyTableBody.appendChild(tr);
+      }
+    }
+
+    function diasEntreDatas(ini, fim) {
+      const d1 = new Date(ini + 'T00:00:00Z');
+      const d2 = new Date(fim + 'T00:00:00Z');
+      const diff = d2 - d1;
+      return Math.round(diff / (1000 * 60 * 60 * 24));
+    }
+
+    function formatarNumero(valor, casas) {
+      if (valor == null || !Number.isFinite(valor)) return '—';
+      return valor.toLocaleString('pt-BR', {
+        minimumFractionDigits: casas,
+        maximumFractionDigits: casas
+      });
+    }
+
+    function escaparHtml(texto) {
+      return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
